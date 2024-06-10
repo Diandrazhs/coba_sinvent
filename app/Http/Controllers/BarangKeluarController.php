@@ -102,15 +102,16 @@ class BarangKeluarController extends Controller
             return redirect()->back()->withInput()->withErrors(['tgl_keluar' => 'Tanggal keluar tidak boleh mendahului tanggal masuk!']);
         }
     
-        $barang = Barang::find($barang_id);
-    
-        if ($request->qty_keluar > $barang->stok) {
-            return redirect()->back()->withInput()->withErrors(['qty_keluar' => 'Jumlah barang keluar melebihi stok!']);
+        $barangkeluar = BarangKeluar::findOrFail($id);
+        $rsetBarang = Barang::findOrFail($barangkeluar->barang_id);
+
+        // Periksa apakah jumlah keluar melebihi stok yang tersedia
+        if ($request->qty_keluar > $rsetBarang->stok + $barangkeluar->qty_keluar) {
+            return redirect()->back()->withErrors(['qty_keluar' => 'Jumlah keluar melebihi stok yang tersedia'])->withInput();
         }
     
-        $barangKeluar = BarangKeluar::findOrFail($id);
     
-        $barangKeluar->update([
+        $barangkeluar->update([
             'tgl_keluar'  => $tgl_keluar,
             'qty_keluar'  => $request->qty_keluar,
             'barang_id'   => $barang_id,
