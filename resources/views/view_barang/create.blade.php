@@ -50,7 +50,7 @@
                                 @enderror
                             </div>
 
-
+                            <!-- mematenkan bagian stok menjadi 0 -->
                             <div class="form-group">
                                 <label class="font-weight-bold">STOK</label>
                                 <input type="text" min="0" class="form-control @error('stok') is-invalid @enderror" name="stok" value="0" placeholder="0" readonly>

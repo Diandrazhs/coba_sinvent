@@ -9,6 +9,7 @@ use App\Models\BarangMasuk;
 use App\Models\BarangKeluar;
 use Illuminate\Support\Facades\Storage;
 use DB;
+
 //use Illuminate\Pagination\Paginator;
 
 class BarangController extends Controller
@@ -24,8 +25,20 @@ class BarangController extends Controller
 
         //mengurutkan data dari data inputan terakhir dari bawah ke atas
         // Paginator::useBootstrap();
-        $rsetBarang = Barang::paginate(10);
-        return view('view_barang.index',compact('rsetBarang'));
+        $keyword = $request->input('keyword');
+
+        // Query untuk mencari barang berdasarkan keyword
+        $rsetBarang = Barang::where('merk', 'LIKE', "%$keyword%")
+            ->orWhere('seri', 'LIKE', "%$keyword%")
+            ->orWhere('spesifikasi', 'LIKE', "%$keyword%")
+            ->orWhere('stok', 'LIKE', "%$keyword%")
+            ->orWhereHas('kategori', function ($query) use ($keyword) {
+                $query->where('deskripsi', 'LIKE', "%$keyword%");
+            })
+            ->paginate(10);
+            
+            return view('view_barang.index', compact('rsetBarang'));
+
     }
 
     public function create()
@@ -53,6 +66,7 @@ class BarangController extends Controller
             'kategori_id'      => $request->kategori_id,
         ]);
 
+        //menampilakan pesan validasi bahwa saat berhasil menambah barang baru, maka akan menampilkan pesan data tersimpan
         return redirect()->route('barang.index')->with(['success' => 'Data Berhasil Disimpan!']);
     }
 
@@ -92,6 +106,7 @@ class BarangController extends Controller
                 'kategori_id'   => $request->kategori_id,
             ]);
 
+        //menampilkan pesan validasi bahwa saat berhasil mengupdate barang baru, maka akan menampilkan pesan data berhasil disimpan
         return redirect()->route('barang.index')->with(['success' => 'Data Berhasil Diubah!']);
     }
      /**
@@ -101,25 +116,16 @@ class BarangController extends Controller
     {
         $rsetBarang = Barang::find($id);
     
-        // cek apakah qty masuk lebih besar daripada stok 
-        if ($rsetBarang->stok > 0) {
-            return redirect()->route('barang.index')->with(['error' => 'Barang dengan stok lebih dari 0 tidak dapat dihapus!']);
-        }
-    
-        // cek apakah berelasi dengan barangkeluar
+        // menampilkan pesan validasi untuk mengecek data barang masih berelasi dengan barangkeluar atau tidak, jika iya maka barang tidak bisa dihapus
         $relatedBarangKeluar = BarangKeluar::where('barang_id', $id)->exists();
-    
-        if ($relatedBarangKeluar) {
-            return redirect()->route('barang.index')->with(['gagal' => 'Data Gagal Dihapus! Data masih digunakan dalam tabel Barang Keluar']);
-        }
-
-        // cek apakah berelasi dengan barangmasuk
         $relatedBarangMasuk = BarangMasuk::where('barang_id', $id)->exists();
+        $relatedBarang      = Barang::where('id', $id)->where('stok', '>', 0 )->exists();
 
-        if ($relatedBarangMasuk) {
-            return redirect()->route('barang.index')->with(['gagal' => 'Data Gagal Dihapus! Data masih digunakan dalam tabel Barang Masuk']);
+        if ($relatedBarangKeluar || $relatedBarangMasuk || $relatedBarang ) {
+            return redirect()->route('barang.index')->with(['gagal' => 'Data Gagal Dihapus! Barang memiliki stok lebih dari 0 dan masih digunakan dalam tabel Barang Masuk dan Keluar!']);
         }
-    
+
+        //menampilkan pesan validasi jika data barang tidak memiliki relasi pada barang keluar dan masuk, maka barang akan berhasil dihapus
         $rsetBarang->delete();
         return redirect()->route('barang.index')->with(['success' => 'Data Berhasil Dihapus!']);
     }

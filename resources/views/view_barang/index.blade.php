@@ -26,14 +26,38 @@
             </div>
         @endif
 
-                <div class="card">
-                    <div class="card-body">
-                        <a href="{{ route('barang.create') }}" class="btn btn-md btn-success mb-3">TAMBAH BARANG</a>
+        <div class="card">
+            <!-- menambah barang baru -->
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div  class="flex-shrink-0">
+                        <a href="{{ route('barang.create') }}" class="btn btn-md btn-success my-2">TAMBAH BARANG</a>
+                        </div>
+                        <!-- Form pencarian -->
+                        <form  method="GET" action="{{ route('barang.index') }}" class="form-inline my-2 my-lg-0">
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-light border-0 small" name="keyword" placeholder="Search for..."
+                                    aria-label="Search" aria-describedby="basic-addon2"  value="{{ request()->input('keyword') }}">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="submit"> <!-- Perubahan di sini: menambahkan type="submit" -->
+                                        <i class="fas fa-search fa-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                        <!-- Form pencarian untuk tampilan kecil (XS) -->
+                        <form  method="GET" action="{{ route('barang.index') }}" class="d-sm-none form-inline mr-auto w-100 navbar-search">
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-light border-0 small" name="keyword" placeholder="Search for..."
+                                    aria-label="Search" aria-describedby="basic-addon2" value="{{ request()->input('keyword') }}">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="submit"> <!-- Perubahan di sini: menambahkan type="submit" -->
+                                        <i class="fas fa-search fa-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
-
                 </div>
-
-
                 <table class="table table-bordered">
                     <thead>
                         <tr>
@@ -44,14 +68,16 @@
                             <th>STOK</th>
                             <th>KATEGORI</th>
                             <th style="width: 15%">AKSI</th>
-
-
                         </tr>
                     </thead>
                     <tbody>
-                    @forelse ($rsetBarang as $index => $rowbarang)
+                        @php
+                        $i = 0;
+                        @endphp
+
+                    @forelse ($rsetBarang as $rowbarang)
                             <tr>
-                                <td>{{ ++$index }}</td>
+                                <td>{{ ++$i }}</td>
                                 <td>{{ $rowbarang->merk  }}</td>
                                 <td>{{ $rowbarang->seri  }}</td>
                                 <td>{{ $rowbarang->spesifikasi  }}</td>

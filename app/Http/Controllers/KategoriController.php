@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Kategori;
 use Illuminate\Support\Facades\DB;
+use Session;
 
 
 class KategoriController extends Controller
@@ -16,9 +17,27 @@ class KategoriController extends Controller
     * Display a listing of the resource.
     */
 
-        $rsetKategori = DB::table('kategori')->select('id','deskripsi',DB::raw('ketKategorik(kategori) as ketkategori'))->paginate(10);
-        return view('view_kategori.index',compact('rsetKategori'))
-            ->with('i', (request()->input('page', 1) - 1) * 10);
+        // $rsetKategori = DB::table('kategori')->select('id','deskripsi',DB::raw('ketKategorik(kategori) as ketkategori'))->paginate(10);
+        // return view('view_kategori.index',compact('rsetKategori'))
+        //     ->with('i', (request()->input('page', 1) - 1) * 10);
+
+        $keyword = $request->input('keyword');
+
+        // Query untuk mencari kategori berdasarkan keyword
+        $query = DB::table('kategori')
+            ->select('id', 'deskripsi', DB::raw('ketKategorik(kategori) as ketkategorik'))
+            ->orderBy('kategori', 'asc');
+    
+        if (!empty($keyword)) {
+            $query->where('deskripsi', 'LIKE', "%$keyword%")
+                  ->orWhereRaw('ketKategorik(kategori) COLLATE utf8mb4_unicode_ci LIKE ?', ["%$keyword%"]);
+        }
+    
+        $rsetKategori = $query->paginate(10);
+    
+        return view('view_kategori.index', compact('rsetKategori'))
+            ->with('i', ($request->input('page', 1) - 1) * 10);
+
     }
 
     /**
@@ -55,13 +74,43 @@ class KategoriController extends Controller
 
 
         //create post
-        Kategori::create([
-            'deskripsi'  => $request->deskripsi,
-            'kategori' => $request->kategori
-        ]);
+        // Kategori::create([
+        //     'deskripsi'  => $request->deskripsi,
+        //     'kategori' => $request->kategori
+        // ]);
 
-        //redirect to index
-        return redirect()->route('kategori.index')->with(['success' => 'Data Berhasil Disimpan!']);
+        {
+            // Validate the request
+            $request->validate([
+                'deskripsi' => 'required|unique:kategori',
+                'kategori'  => 'required|in:M,A,BHP,BTHP',
+            ]);
+    
+            try {
+                DB::beginTransaction(); // Start the transaction
+    
+                // Insert a new category using Eloquent
+                Kategori::create([
+                    'deskripsi' => $request->deskripsi,
+                    'kategori'  => $request->kategori,
+                    'status'    => 'pending',
+                ]);
+    
+                DB::commit(); // Commit the changes
+    
+                // Flash success message to the session
+                Session::flash('success', 'Kategori berhasil disimpan!');
+            } catch (\Exception $e) {
+                DB::rollBack(); // Rollback in case of an exception
+                report($e); // Report the exception
+    
+                // Flash failure message to the session
+                Session::flash('gagal', 'Kategori gagal disimpan!');
+            }
+    
+            // Redirect to the index route with a success message
+            return redirect()->route('kategori.index')->with(['success' => 'Data Berhasil Disimpan!']);
+        }
     }
 
     /**
@@ -118,6 +167,8 @@ class KategoriController extends Controller
                 // 'kategori_id'       => $request->kategori_id
             ]);
 
+
+        //menampilkan pesan validasi saat mengupdate kategori dan kolom deskripsi derta kategori telah diisi semua, maka data berhasil diubah
         return redirect()->route('kategori.index')->with(['success' => 'Data Kategori Berhasil Diubah!']);
     }
 
@@ -127,10 +178,10 @@ class KategoriController extends Controller
     public function destroy(string $id)
 
     {
-        // cek apakah kategori_id ada di tabel barang.kategori_id ?
-
+        // mengecek kategori_id apakah ada di barang.kategori_id yaitu jika data kategori masih memiliki relasi dengan barang, barang masuk dan keluar
         if (DB::table('barang')->where('kategori_id', $id)->exists()){
 
+            //Jika iya, maka akan menampilkanan pesan validasi data gagal dihapus
             return redirect()->route('kategori.index')->with(['gagal' => 'Data Gagal Dihapus!']);
 
         } else {
@@ -139,6 +190,7 @@ class KategoriController extends Controller
 
             $rsetKategori->delete();
 
+            //jika tidak maka akan menampilkan pesan validasi data berhasil dihapus
             return redirect()->route('kategori.index')->with(['success' => 'Data Berhasil Dihapus!']);
 
         }

@@ -9,10 +9,14 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\BarangMasukController;
 use App\Http\Controllers\BarangKeluarController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return view('login');
 });
+
+//ROUTE UNTUK MENUUJU HALAMAN DASHBOARD
+Route::get('dashboard', [DashboardController::class,'index']);
 
 //Route::resource('/products', ProductController::class);
 
